@@ -13,43 +13,114 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// model User {
+//   id       Int       @id @default(autoincrement())
+//   name     String
+//   email    String    @unique
+//   password String
+//   role     Role      @default(USER)
+//   bookings Booking[]
+// }
+
+// model Movie {
+//   id          Int       @id @default(autoincrement())
+//   title       String
+//   description String
+//   language    String
+//   duration    Int
+//   theatres    Theatre[]
+// }
+
+// model Theatre {
+//   id       Int       @id @default(autoincrement())
+//   name     String
+//   location String
+//   movieId  Int
+//   movie    Movie     @relation(fields: [movieId], references: [id])
+//   bookings Booking[]
+// }
+
+// model Booking {
+//   id        Int     @id @default(autoincrement())
+//   userId    Int
+//   theatreId Int
+//   seats     Int
+//   user      User    @relation(fields: [userId], references: [id])
+//   theatre   Theatre @relation(fields: [theatreId], references: [id])
+// }
+
+// enum Role {
+//   ADMIN
+//   USER
+// }
+enum Role {
+  CUSTOMER
+  OWNER
+  ADMIN
+}
+
 model User {
   id       Int       @id @default(autoincrement())
   name     String
   email    String    @unique
   password String
-  role     Role      @default(USER)
+  role     Role      @default(CUSTOMER)
+  theatres Theatre[]
   bookings Booking[]
 }
 
 model Movie {
-  id          Int       @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   title       String
   description String
+  duration    Int // Duration in minutes
   language    String
-  duration    Int
-  theatres    Theatre[]
+  releaseDate DateTime @default(now())
+  posterUrl   String
+  shows       Show[]
 }
 
 model Theatre {
-  id       Int       @id @default(autoincrement())
-  name     String
-  location String
-  movieId  Int
-  movie    Movie     @relation(fields: [movieId], references: [id])
-  bookings Booking[]
+  id         Int      @id @default(autoincrement())
+  name       String
+  location   String
+  totalSeats Int // Total physical seats in the theatre
+  ownerId    Int
+  owner      User     @relation(fields: [ownerId], references: [id])
+  screens    Screen[]
+  shows      Show[]
+}
+
+model Screen {
+  id        Int     @id @default(autoincrement())
+  theatreId Int
+  theatre   Theatre @relation(fields: [theatreId], references: [id])
+  name      String // E.g., "Screen 1", "IMAX Screen"
+  capacity  Int // Capacity of this specific screen
+  shows     Show[]
+}
+
+model Show {
+  id        Int       @id @default(autoincrement())
+  movieId   Int
+  movie     Movie     @relation(fields: [movieId], references: [id])
+  theatreId Int
+  theatre   Theatre   @relation(fields: [theatreId], references: [id])
+  screenId  Int
+  screen    Screen    @relation(fields: [screenId], references: [id])
+  showTime  DateTime
+  price     Float
+  bookings  Booking[]
 }
 
 model Booking {
-  id        Int     @id @default(autoincrement())
-  userId    Int
-  theatreId Int
-  seats     Int
-  user      User    @relation(fields: [userId], references: [id])
-  theatre   Theatre @relation(fields: [theatreId], references: [id])
-}
-
-enum Role {
-  ADMIN
-  USER
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id])
+  showId     Int
+  show       Show     @relation(fields: [showId], references: [id])
+  seats      Int
+  totalPrice Float
+  status     String   @default("pending") // e.g., "pending", "confirmed", "cancelled"
+  createdAt  DateTime @default(now())
 }
