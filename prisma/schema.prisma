@@ -13,46 +13,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// model User {
-//   id       Int       @id @default(autoincrement())
-//   name     String
-//   email    String    @unique
-//   password String
-//   role     Role      @default(USER)
-//   bookings Booking[]
-// }
-
-// model Movie {
-//   id          Int       @id @default(autoincrement())
-//   title       String
-//   description String
-//   language    String
-//   duration    Int
-//   theatres    Theatre[]
-// }
-
-// model Theatre {
-//   id       Int       @id @default(autoincrement())
-//   name     String
-//   location String
-//   movieId  Int
-//   movie    Movie     @relation(fields: [movieId], references: [id])
-//   bookings Booking[]
-// }
-
-// model Booking {
-//   id        Int     @id @default(autoincrement())
-//   userId    Int
-//   theatreId Int
-//   seats     Int
-//   user      User    @relation(fields: [userId], references: [id])
-//   theatre   Theatre @relation(fields: [theatreId], references: [id])
-// }
-
-// enum Role {
-//   ADMIN
-//   USER
-// }
 enum Role {
   CUSTOMER
   OWNER
@@ -60,23 +20,27 @@ enum Role {
 }
 
 model User {
-  id       Int       @id @default(autoincrement())
-  name     String
-  email    String    @unique
-  password String
-  role     Role      @default(CUSTOMER)
-  theatres Theatre[]
-  bookings Booking[]
+  id        Int       @id @default(autoincrement())
+  name      String
+  email     String    @unique
+  password  String
+  role      Role      @default(CUSTOMER)
+  createdAt DateTime  @default(now()) // Added for consistency
+  updatedAt DateTime  @updatedAt // Added for consistency
+  theatres  Theatre[]
+  bookings  Booking[]
 }
 
 model Movie {
   id          Int      @id @default(autoincrement())
   title       String
-  description String
+  description String // Kept as required based on your provided schema
   duration    Int // Duration in minutes
   language    String
-  releaseDate DateTime @default(now())
-  posterUrl   String
+  releaseDate DateTime // Changed from @default(now()) as it's a specific release date
+  posterUrl   String // Added as it was present in your controllers
+  createdAt   DateTime @default(now()) // Added for consistency
+  updatedAt   DateTime @updatedAt // Added for consistency
   shows       Show[]
 }
 
@@ -84,43 +48,91 @@ model Theatre {
   id         Int      @id @default(autoincrement())
   name       String
   location   String
-  totalSeats Int // Total physical seats in the theatre
+  totalSeats Int // Total physical seats in the theatre (can remain as summary)
   ownerId    Int
   owner      User     @relation(fields: [ownerId], references: [id])
+  createdAt  DateTime @default(now()) // Added for consistency
+  updatedAt  DateTime @updatedAt // Added for consistency
   screens    Screen[]
   shows      Show[]
 }
 
 model Screen {
-  id        Int     @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   theatreId Int
-  theatre   Theatre @relation(fields: [theatreId], references: [id])
+  theatre   Theatre  @relation(fields: [theatreId], references: [id])
   name      String // E.g., "Screen 1", "IMAX Screen"
   capacity  Int // Capacity of this specific screen
+  createdAt DateTime @default(now()) // Added for consistency
+  updatedAt DateTime @updatedAt // Added for consistency
   shows     Show[]
+  seats     Seat[] // Link to the individual physical seats belonging to this screen
 }
 
 model Show {
-  id        Int       @id @default(autoincrement())
+  id        Int        @id @default(autoincrement())
   movieId   Int
-  movie     Movie     @relation(fields: [movieId], references: [id])
+  movie     Movie      @relation(fields: [movieId], references: [id])
   theatreId Int
-  theatre   Theatre   @relation(fields: [theatreId], references: [id])
+  theatre   Theatre    @relation(fields: [theatreId], references: [id])
   screenId  Int
-  screen    Screen    @relation(fields: [screenId], references: [id])
+  screen    Screen     @relation(fields: [screenId], references: [id])
   showTime  DateTime
   price     Float
+  createdAt DateTime   @default(now()) // Added for consistency
+  updatedAt DateTime   @updatedAt // Added for consistency
   bookings  Booking[]
+  showSeats ShowSeat[] // Link to the specific seat statuses for this show
 }
 
 model Booking {
-  id         Int      @id @default(autoincrement())
-  userId     Int
-  user       User     @relation(fields: [userId], references: [id])
-  showId     Int
-  show       Show     @relation(fields: [showId], references: [id])
-  seats      Int
-  totalPrice Float
-  status     String   @default("pending") // e.g., "pending", "confirmed", "cancelled"
-  createdAt  DateTime @default(now())
+  id          Int        @id @default(autoincrement())
+  userId      Int
+  user        User       @relation(fields: [userId], references: [id])
+  showId      Int
+  show        Show       @relation(fields: [showId], references: [id])
+  // Removed 'seats' field as individual seats are now tracked via ShowSeat
+  totalPrice  Float
+  status      String     @default("Confirmed") // Changed default to "Confirmed" for typical flow
+  bookingTime DateTime   @default(now()) // Renamed from 'createdAt' to be more explicit for booking
+  createdAt   DateTime   @default(now()) // Standard created timestamp for the record
+  updatedAt   DateTime   @updatedAt // Added for consistency
+  bookedSeats ShowSeat[] // Link to the actual ShowSeats that are part of this booking
+}
+
+// NEW TABLE: Defines the physical seat layout within a Screen
+model Seat {
+  id         Int        @id @default(autoincrement())
+  screenId   Int
+  screen     Screen     @relation(fields: [screenId], references: [id])
+  seatRow    String // e.g., "A", "B" (for row identification)
+  seatColumn Int // e.g., 1, 2, 3 (for column identification within a row)
+  seatType   String?    @default("Standard") // e.g., "Standard", "Premium", "VIP"
+  isActive   Boolean    @default(true) // For maintenance, broken seats etc.
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt // Added for consistency
+  showSeats  ShowSeat[] // Link to the availability of this specific seat across shows
+}
+
+// NEW TABLE: Tracks the status of each Seat for each specific Show
+model ShowSeat {
+  id        Int        @id @default(autoincrement())
+  showId    Int
+  show      Show       @relation(fields: [showId], references: [id])
+  seatId    Int
+  seat      Seat       @relation(fields: [seatId], references: [id])
+  status    SeatStatus @default(AVAILABLE) // Available, Booked, Held
+  bookingId Int? // Nullable: Only set if the seat is Booked or Held
+  booking   Booking?   @relation(fields: [bookingId], references: [id])
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt // Added for consistency
+
+  @@unique([showId, seatId]) // A seat can only have one status for a given show
+}
+
+// NEW ENUM: For seat status
+enum SeatStatus {
+  AVAILABLE
+  BOOKED
+  HELD // For temporary holds during a user's booking process
 }

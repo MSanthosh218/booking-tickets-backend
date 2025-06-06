@@ -1,31 +1,17 @@
-// // src/routes/movie.routes.js
-// import express from 'express';
-// import {
-//   createMovie,
-//   getAllMovies,
-//   getMovieById,
-// } from '../controllers/movie.controller.js';
-// import { authenticate, authorizeRoles } from '../middlewares/auth.middleware.js';
-
-// const router = express.Router();
-
-// router.post('/', authenticate, authorizeRoles('ADMIN'), createMovie);
-// router.get('/', getAllMovies);
-// router.get('/:id', getMovieById);
-
-// export default router;
-// src/routes/movie.routes.js
 import express from 'express';
 import {
   createMovie,
   getAllMovies,
   getMovieById,
 } from '../controllers/movie.controller.js';
-import { authenticate, authorizeRoles } from '../middlewares/auth.middleware.js'; // Correct import path
+import { authenticate, authorizeRoles } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
 
-router.post('/', authenticate, authorizeRoles('ADMIN'), createMovie);
+// Admin only: Create a new movie
+router.post('/', authenticate, authorizeRoles(['ADMIN']), createMovie);
+
+// Publicly accessible: Get all movies and get movie by ID
 router.get('/', getAllMovies);
 router.get('/:id', getMovieById);
 

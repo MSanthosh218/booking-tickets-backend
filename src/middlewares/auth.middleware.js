@@ -1,55 +1,41 @@
-// // src/middlewares/auth.middleware.js
-// import jwt from 'jsonwebtoken';
-
-// export const authenticate = (req, res, next) => {
-//   const authHeader = req.headers.authorization;
-
-//   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-//     return res.status(401).json({ message: 'Unauthorized' });
-//   }
-
-//   const token = authHeader.split(' ')[1];
-
-//   try {
-//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-//     req.user = decoded; // Attach decoded user data to request
-//     next();
-//   } catch (error) {
-//     res.status(403).json({ message: 'Invalid or expired token' });
-//   }
-// };
-// src/middlewares/auth.middleware.js
 import jwt from 'jsonwebtoken';
 
 export const authenticate = (req, res, next) => {
   let token;
 
+  // Check if authorization header exists and starts with 'Bearer'
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    try {
-      token = req.headers.authorization.split(' ')[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = decoded;
-      next();
-    } catch (error) {
-      console.error('Token verification failed:', error);
-      res.status(401).json({ message: 'Not authorized, token failed' });
-    }
+    token = req.headers.authorization.split(' ')[1];
   }
 
   if (!token) {
-    res.status(401).json({ message: 'Not authorized, no token' });
+    return res.status(401).json({ message: 'Unauthorized: No token provided.' });
+  }
+
+  try {
+    // Verify the token using your JWT_SECRET
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded; // Attach decoded user data (id, email, role) to the request object
+    next(); // Proceed to the next middleware or route handler
+  } catch (error) {
+    console.error('Authentication Error:', error);
+    return res.status(403).json({ message: 'Forbidden: Invalid or expired token.' });
   }
 };
 
-export const authorizeRoles = (...allowedRoles) => {
+// Middleware to authorize specific roles
+export const authorizeRoles = (roles) => {
   return (req, res, next) => {
+    // Ensure req.user exists (from authenticate middleware)
     if (!req.user || !req.user.role) {
-      return res.status(401).json({ message: 'Not authorized, user role missing' });
+      return res.status(403).json({ message: 'Forbidden: User role not found.' });
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ message: 'Access denied' });
+    // Check if the user's role is included in the allowed roles array
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ message: `Forbidden: Access denied. Required roles: ${roles.join(', ')}.` });
     }
-    next();
+
+    next(); // User is authorized, proceed
   };
 };

@@ -1,39 +1,21 @@
-// import express from "express";
-// import {
-//   createBooking,
-//   getUserBookings,
-//   updateBooking,
-//   cancelBooking,
-// } from "../controllers/bookingController.js";
-// import { protect } from "../middlewares/authMiddleware.js";
-
-// const router = express.Router();
-
-// router.use(protect); // All routes protected, user must be logged in
-
-// router.post("/", createBooking);
-// router.get("/", getUserBookings);
-// router.put("/:id", updateBooking);
-// router.delete("/:id", cancelBooking);
-
-// export default router;
-// src/routes/bookingRoutes.js
 import express from "express";
 import {
   createBooking,
   getUserBookings,
   updateBooking,
   cancelBooking,
-} from "../controllers/bookingController.js";
-import { authenticate } from "../middlewares/auth.middleware.js"; // Corrected: Using 'authenticate' from 'auth.middleware.js'
+} from "../controllers/booking.controller.js"; // Corrected controller name if it was different
+import { authenticate } from "../middlewares/auth.middleware.js"; // Using 'authenticate' from 'auth.middleware.js'
 
 const router = express.Router();
 
-router.use(authenticate); // All routes protected, user must be logged in
+// Apply authentication middleware to all booking routes
+router.use(authenticate);
 
-router.post("/", createBooking);
-router.get("/", getUserBookings);
-router.put("/:id", updateBooking);
-router.delete("/:id", cancelBooking);
+// Define booking routes
+router.post("/", createBooking);       // Create a new booking (now expects seatIds)
+router.get("/", getUserBookings);     // Get bookings of the logged-in user
+router.put("/:id", updateBooking);    // Update a specific booking (e.g., change status, add/remove seats)
+router.delete("/:id", cancelBooking); // Cancel a specific booking
 
 export default router;
