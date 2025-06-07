@@ -17,7 +17,11 @@ dotenv.config();
 const app = express();
 
 // Middlewares
-app.use(cors());
+// app.use(cors());
+app.use(cors({
+  credentials : true,
+  origin : process.env.FRONTEND_URL
+})) 
 app.use(express.json()); // Essential for parsing JSON request bodies
 
 // Routes
