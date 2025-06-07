@@ -10,7 +10,7 @@ import movieRoutes from './routes/movie.routes.js';
 import bookingRoutes from "./routes/bookingRoutes.js";
 import screenRoutes from "./routes/screen.routes.js";
 import showRoutes from "./routes/show.routes.js";
-import userRoutes from "./routes/user.routes.js"; // <--- ADD THIS LINE: Import the new user routes
+import userRoutes from "./routes/user.routes.js";
 
 dotenv.config();
 
@@ -18,7 +18,7 @@ const app = express();
 
 // Middlewares
 app.use(cors());
-app.use(express.json());
+app.use(express.json()); // Essential for parsing JSON request bodies
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -27,6 +27,26 @@ app.use('/api/movies', movieRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use("/api/screens", screenRoutes);
 app.use("/api/shows", showRoutes);
-app.use("/api/users", userRoutes); // <--- ADD THIS LINE: Tell Express to use user routes for /api/users
+app.use("/api/users", userRoutes);
+
+// --- Error Handling Middleware ---
+// Catch 404 and forward to error handler
+app.use((req, res, next) => {
+  const error = new Error('API Route not found');
+  error.status = 404;
+  next(error);
+});
+
+// General error handler
+app.use((err, req, res, next) => {
+  console.error(err.stack); // Log the error stack for debugging
+  const statusCode = err.status || 500;
+  res.status(statusCode).json({
+    success: false,
+    message: err.message || 'An unexpected error occurred',
+    // Only send stack trace in development mode
+    // stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+  });
+});
 
 export default app;
